@@ -6,11 +6,14 @@ from PIL import Image
 MIN_AREA = 100
 
 
-def load_image(image_path: str):
-    return Image.open(image_path).convert("RGB")
+def load_image(image_path: str, xmin, ymin, xmax, ymax):
+    image = Image.open(image_path).convert("RGB")
+    box = (xmin, ymin, xmax, ymax)
+    return image.crop(box)
 
 
-def draw_image(image_rgb, masks, xyxy, probs, labels):
+
+def draw_image(image_rgb, masks, mask_scores, xyxy, probs, labels):
     box_annotator = sv.BoxCornerAnnotator()
     label_annotator = sv.LabelAnnotator()
     mask_annotator = sv.MaskAnnotator()
@@ -19,11 +22,24 @@ def draw_image(image_rgb, masks, xyxy, probs, labels):
     class_id_map = {label: idx for idx, label in enumerate(unique_labels)}
     class_id = [class_id_map[label] for label in labels]
 
+    print('probs', probs)
+    print('masks shape', masks.shape)
+    
+    val = 0
+    i = -1
+    for index, value in enumerate(probs):
+        if value > val:
+            i = index
+            val = value
+    print('index', i)
+    print('value', [probs[i]])
+    mask = masks[i].astype(bool)
+    mask = np.expand_dims(mask, axis=0)
     # Add class_id to the Detections object
     detections = sv.Detections(
         xyxy=xyxy,
-        mask=masks.astype(bool),
-        confidence=probs,
+        mask=mask,
+        confidence=np.array([probs[i]]),
         class_id=np.array(class_id),
     )
     annotated_image = box_annotator.annotate(scene=image_rgb.copy(), detections=detections)
