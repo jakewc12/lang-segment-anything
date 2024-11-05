@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import supervision as sv
 from PIL import Image
+import pandas as pd
+import torch
 
 MIN_AREA = 100
 
@@ -22,29 +24,33 @@ def draw_image(image_rgb, masks, mask_scores, xyxy, probs, labels):
     class_id_map = {label: idx for idx, label in enumerate(unique_labels)}
     class_id = [class_id_map[label] for label in labels]
 
-    print('probs', probs)
-    print('masks shape', masks.shape)
-    
-    val = 0
-    i = -1
-    for index, value in enumerate(probs):
-        if value > val:
-            i = index
-            val = value
-    print('index', i)
-    print('value', [probs[i]])
-    mask = masks[i].astype(bool)
-    mask = np.expand_dims(mask, axis=0)
+    dects = []
+    for index, value in enumerate(masks):
+        mask = masks[index].astype(bool)
+        mask = np.expand_dims(mask, axis=0)
+        local_dect = sv.Detections(
+            xyxy=xyxy,
+            mask=mask,
+            confidence=np.array([probs[index]]),
+            class_id=np.array(class_id),
+        )
+        dects.append(local_dect)
+    """
     # Add class_id to the Detections object
     detections = sv.Detections(
         xyxy=xyxy,
-        mask=mask,
-        confidence=np.array([probs[i]]),
+        mask=masks.astype(bool),
+        confidence=probs,
         class_id=np.array(class_id),
     )
-    annotated_image = box_annotator.annotate(scene=image_rgb.copy(), detections=detections)
-    annotated_image = label_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
-    annotated_image = mask_annotator.annotate(scene=annotated_image, detections=detections)
+    """
+    #annotated_image = box_annotator.annotate(scene=image_rgb.copy(), detections=detections)
+    #annotated_image = label_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
+    #annotated_image = mask_annotator.annotate(scene=annotated_image, detections=detections)
+    #for detection in dects:
+    annotated_image = box_annotator.annotate(scene=image_rgb.copy(), detections=dects[0])
+    annotated_image = label_annotator.annotate(scene=annotated_image, detections=dects[0], labels=labels)
+    annotated_image = mask_annotator.annotate(scene=annotated_image, detections=dects[0])
     return annotated_image
 
 
