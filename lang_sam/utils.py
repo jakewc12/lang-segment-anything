@@ -13,7 +13,8 @@ def load_image(image_path: str, xmin, ymin, xmax, ymax):
     box = (xmin, ymin, xmax, ymax)
     return image.crop(box)
 
-
+def load_image_normal(image_path:str):
+    return Image.open(image_path).convert("RGB")
 
 def draw_image(image_rgb, masks, mask_scores, xyxy, probs, labels):
     box_annotator = sv.BoxCornerAnnotator()
